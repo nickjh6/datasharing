@@ -1,0 +1,160 @@
+---
+title: "Midterm"
+author: "Nick Howard"
+date: "7/17/2019"
+output:
+  word_document: default
+  pdf_document: default
+  html_document: default
+---
+
+```{r}
+
+library(fpp2)
+library(forecast)
+library(ggplot2)
+library(readxl)
+library(tidyverse)
+library(data.table)
+library(magrittr)
+library(ggplot2)
+library(lubridate)
+library(xts)
+library(forecast)
+library(DT)
+library(gridExtra)
+library(leaflet)
+library(htmltools)
+library(mapdata)
+library(maptools)
+library(sp)
+
+air.visit <- read.csv("C:/Users/Nicholas Howard/Desktop/Applied Economics/Forecasting/recruit-restaurant-visitor-forecasting/air_visit_data.csv")
+
+air.reserve <- read.csv("C:/Users/Nicholas Howard/Desktop/Applied Economics/Forecasting/recruit-restaurant-visitor-forecasting/air_reserve.csv", stringsAsFactors = FALSE)
+
+air.store <- read.csv("C:/Users/Nicholas Howard/Desktop/Applied Economics/Forecasting/recruit-restaurant-visitor-forecasting/air_store_info.csv", stringsAsFactors = FALSE)
+
+hpg.reserve <- read.csv("C:/Users/Nicholas Howard/Desktop/Applied Economics/Forecasting/recruit-restaurant-visitor-forecasting/hpg_reserve.csv", stringsAsFactors = FALSE)
+
+hpg.store <- read.csv("C:/Users/Nicholas Howard/Desktop/Applied Economics/Forecasting/recruit-restaurant-visitor-forecasting/hpg_store_info.csv", stringsAsFactors = FALSE)
+
+date <- read.csv("C:/Users/Nicholas Howard/Desktop/Applied Economics/Forecasting/recruit-restaurant-visitor-forecasting/date_info.csv", stringsAsFactors = FALSE)
+
+store.id <- read.csv("C:/Users/Nicholas Howard/Desktop/Applied Economics/Forecasting/recruit-restaurant-visitor-forecasting/store_id_relation.csv", stringsAsFactors = FALSE)
+
+
+
+
+visits[, visit_date := as.Date(visit_date)]
+
+holidays <- dates[holiday_flg == 1, ]
+
+p1 <- visits[, .(total_visit = sum(visitors)), by = visit_date] %>%
+    ggplot(aes(x = visit_date, y = total_visit)) + 
+    geom_line(color = 'steelblue') + 
+    geom_vline(data = holidays, aes(xintercept = as.Date(calendar_date)), alpha = 0.4) + 
+    scale_x_date(date_breaks = "1 month") + 
+    theme(axis.text.x = element_text(angle = 90, hjust = 1)) + 
+    labs(x = '', y = 'Total visits', title = 'Visits by day (with holidays)')
+
+p2 <- visits[order(wday(visit_date)), .(mean_visits = mean(visitors)), by = weekdays(visit_date)] %>%
+    ggplot(aes(x = reorder(weekdays, seq(1,7)), y = mean_visits)) + 
+    geom_bar(stat = 'identity', fill = 'steelblue') +
+    labs(x = '', y = "Mean visits", title = "Average visits by day of week")
+
+p3 <- visits[, .(total_visitors = sum(visitors)), by = visit_date] %>% 
+    as.xts() %>% 
+    ggAcf() +
+    labs(title = 'Autocorrelation plot of total visitors')
+
+p4 <- visits[, .(total_visitors = sum(visitors)), by = visit_date] %>% 
+    as.xts() %>% 
+    ggPacf() +
+    labs(title = 'Partial Autocorrelation plot of total visitors')
+    
+
+    
+grid.arrange(p1, p2, p3, p4, nrow = 4)
+
+
+graph_list <- list()
+
+plot_genre <- function(i){
+  genre_specific_sum <- genre_sum %>% filter(air_genre_name==i)
+  genre_train <- genre_specific_sum %>% filter(visit_date <='2017-02-01')
+  genre_test <- genre_specific_sum %>% filter(visit_date >'2017-02-01')
+  
+  m <- arima(genre_train$visitors, order=c(2,1,2), seasonal= list(order=c(1,1,1), period=7))
+  y_pred <- forecast::forecast(m, h=80)
+
+  plot(ts(genre_specific_sum$visitors), main=i, xlab='Year', ylab='visitors')
+  lines(y_pred$mean, col='red')
+}
+
+par(mfrow=c(3,1), cex=0.7)
+plot_genre(genre_unique[1])
+plot_genre(genre_unique[2])
+plot_genre(genre_unique[3])
+par(mfrow=c(3,1), cex=0.7)
+plot_genre(genre_unique[4])
+plot_genre(genre_unique[5])
+plot_genre(genre_unique[6])
+par(mfrow=c(3,1), cex=0.7)
+plot_genre(genre_unique[7])
+plot_genre(genre_unique[8])
+plot_genre(genre_unique[9])
+par(mfrow=c(3,1), cex=0.7)
+plot_genre(genre_unique[10])
+plot_genre(genre_unique[11])
+plot_genre(genre_unique[12])
+par(mfrow=c(2,1), cex=0.7)
+plot_genre(genre_unique[13])
+plot_genre(genre_unique[14])
+
+par(mfrow=c(3,1),cex=0.6)
+for (i in c("Western food","International cuisine", "Okonomiyaki/Monja/Teppanyaki") ){
+  genre_specific_sum <- genre_sum %>% filter(air_genre_name==i) %>% filter(visit_date > '2017-01-02')
+  split_date <- '2017-03-15'
+  genre_train <- genre_specific_sum %>% filter(visit_date <= split_date) 
+  genre_test <- genre_specific_sum %>% filter(visit_date > split_date)
+  
+  m <- arima(genre_train$visitors, order=c(2,1,2), seasonal= list(order=c(2,1,2), period=7))
+  y_pred <- forecast::forecast(m, h=80)
+  
+  
+  plot(ts(genre_specific_sum$visitors), main=i, xlab='Year', ylab='visitors', xlim=c(0,100))
+  lines(y_pred$mean, col='red')
+}
+
+genre_specific_sum <- genre_sum %>% filter(air_genre_name=="Cafe/Sweets") %>% filter(visit_date > '2017-01-02')
+split_date <- '2017-02-20'
+genre_train <- genre_specific_sum %>% filter(visit_date <= split_date) 
+genre_test <- genre_specific_sum %>% filter(visit_date > split_date)
+
+m <- arima(genre_train$visitors, order=c(2,1,2), seasonal= list(order=c(1,1,1), period=7))
+y_pred <- forecast::forecast(m, h=80)
+
+par(mfrow=c(2,1),cex=0.6)
+genre_sum %>% filter(air_genre_name=='Cafe/Sweets')  %>% select(visitors) %>%  plot(type='l', main = 'Unadjusted')
+plot(ts(genre_specific_sum$visitors), main=i, xlab='Year', ylab='visitors', xlim=c(0,100))
+lines(y_pred$mean, col='red')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```
+

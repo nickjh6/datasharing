@@ -1,0 +1,42 @@
+---
+title: "Insurance"
+author: "Nick Howard"
+date: "April 21, 2019"
+output:
+  word_document: default
+  pdf_document: default
+  html_document: default
+---
+
+```{r}
+crash<-subset(insurance, insurance$TARGET_FLAG=="1")
+table(crash$JOB)
+plot(table(crash$JOB))
+table(crash$AGE)
+hist(table(crash$AGE),xlim = c(15,80), ylim = c(0,20), breaks = 10)
+table(crash$SEX)
+plot(table(crash$SEX))
+table(crash$CAR_TYPE)
+plot(table(crash$CAR_TYPE))
+table(crash$URBANICITY)
+plot(table(crash$URBANICITY))
+table(crash$REVOKED)
+plot(table(crash$REVOKED))
+
+
+nocrash<-subset(insurance, insurance$TARGET_FLAG=="0")
+table(nocrash$JOB)
+plot(table(nocrash$JOB))
+table(nocrash$AGE)
+hist(table(nocrash$AGE),xlim = c(15,80), ylim = c(0,20), breaks = 10)
+table(nocrash$SEX)
+plot(table(nocrash$SEX))
+table(nocrash$CAR_TYPE)
+plot(table(nocrash$CAR_TYPE))
+table(nocrash$URBANICITY)
+plot(table(nocrash$URBANICITY))
+table(nocrash$REVOKED)
+plot(table(nocrash$REVOKED))
+```
+
+
